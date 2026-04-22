@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { AudioInput } from "@/components/AudioInput";
 import { speechToImage } from "@/lib/api";
@@ -9,10 +9,12 @@ export function LandingCard() {
   const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
   const [style, setStyle] = useState("realistic");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [transcription, setTranscription] = useState("");
   const [finalPrompt, setFinalPrompt] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const loadingTimersRef = useRef<number[]>([]);
 
   const handleGenerate = async () => {
     if (!selectedAudio) {
@@ -21,7 +23,15 @@ export function LandingCard() {
     }
 
     setIsLoading(true);
+    setLoadingMessage("Uploading audio...");
     setError(null);
+
+    window.clearTimeout(loadingTimersRef.current[0]);
+    window.clearTimeout(loadingTimersRef.current[1]);
+    loadingTimersRef.current = [
+      window.setTimeout(() => setLoadingMessage("Transcribing..."), 700),
+      window.setTimeout(() => setLoadingMessage("Generating image..."), 1800),
+    ];
 
     try {
       const result = await speechToImage(selectedAudio, style);
@@ -33,6 +43,9 @@ export function LandingCard() {
         requestError instanceof Error ? requestError.message : "Something went wrong.";
       setError(message);
     } finally {
+      loadingTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+      loadingTimersRef.current = [];
+      setLoadingMessage("");
       setIsLoading(false);
     }
   };
@@ -64,6 +77,7 @@ export function LandingCard() {
               id="style"
               value={style}
               onChange={(event) => setStyle(event.target.value)}
+              disabled={isLoading}
               className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-300"
             >
               <option value="realistic">Realistic</option>
@@ -77,12 +91,13 @@ export function LandingCard() {
             type="button"
             onClick={() => void handleGenerate()}
             disabled={isLoading}
-            className="h-11 rounded-xl bg-slate-900 px-6 text-sm font-semibold text-white shadow-[0_12px_24px_-12px_rgba(15,23,42,0.7)] transition hover:bg-slate-800"
+            className="h-11 rounded-xl bg-slate-900 px-6 text-sm font-semibold text-white shadow-[0_12px_24px_-12px_rgba(15,23,42,0.7)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isLoading ? "Generating..." : "Generate"}
+            {isLoading ? loadingMessage || "Generating image..." : "Generate"}
           </button>
         </section>
 
+        {isLoading ? <p className="text-sm text-slate-600">{loadingMessage}</p> : null}
         {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       </div>
 
