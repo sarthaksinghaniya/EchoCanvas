@@ -3,9 +3,39 @@
 import { useState } from "react";
 
 import { AudioInput } from "@/components/AudioInput";
+import { speechToImage } from "@/lib/api";
 
 export function LandingCard() {
   const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
+  const [style, setStyle] = useState("realistic");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [transcription, setTranscription] = useState("");
+  const [finalPrompt, setFinalPrompt] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+
+  const handleGenerate = async () => {
+    if (!selectedAudio) {
+      setError("Please upload or record an audio file first.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await speechToImage(selectedAudio, style);
+      setTranscription(result.transcription);
+      setFinalPrompt(result.final_prompt);
+      setImageUrl(result.image_url);
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error ? requestError.message : "Something went wrong.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <article className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:p-8 lg:p-10">
@@ -32,7 +62,8 @@ export function LandingCard() {
             </label>
             <select
               id="style"
-              defaultValue="realistic"
+              value={style}
+              onChange={(event) => setStyle(event.target.value)}
               className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-300"
             >
               <option value="realistic">Realistic</option>
@@ -44,33 +75,45 @@ export function LandingCard() {
 
           <button
             type="button"
+            onClick={() => void handleGenerate()}
+            disabled={isLoading}
             className="h-11 rounded-xl bg-slate-900 px-6 text-sm font-semibold text-white shadow-[0_12px_24px_-12px_rgba(15,23,42,0.7)] transition hover:bg-slate-800"
           >
-            Generate
+            {isLoading ? "Generating..." : "Generate"}
           </button>
         </section>
+
+        {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       </div>
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-800">Transcription</h3>
-          <div className="mt-2 min-h-24 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-400">
-            Your speech transcription will appear here.
+          <div className="mt-2 min-h-24 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
+            {transcription || "Your speech transcription will appear here."}
           </div>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-800">Final Prompt</h3>
-          <div className="mt-2 min-h-24 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-400">
-            Enhanced image prompt will appear here.
+          <div className="mt-2 min-h-24 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
+            {finalPrompt || "Enhanced image prompt will appear here."}
           </div>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
           <h3 className="text-sm font-semibold text-slate-800">Generated Image</h3>
-          <div className="mt-3 flex min-h-72 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#edf2f7_100%)] text-sm text-slate-400">
-            Generated image preview will appear here.
-          </div>
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt="Generated output"
+              className="mt-3 max-h-[30rem] w-full rounded-2xl border border-slate-200 object-cover"
+            />
+          ) : (
+            <div className="mt-3 flex min-h-72 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#edf2f7_100%)] text-sm text-slate-400">
+              Generated image preview will appear here.
+            </div>
+          )}
         </section>
       </div>
     </article>
