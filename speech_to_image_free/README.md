@@ -107,6 +107,26 @@ If the upload is not an audio file, the API returns a readable `400` error respo
    - `detected_language`
    - `transcription`
 
+### 5.3 Speech-to-Image Feature Flow
+
+`POST /speech-to-image` runs the full local pipeline:
+
+1. Accepts `audio file` via multipart/form-data.
+2. Accepts optional `style` from either:
+   - form field (`style`)
+   - query parameter (`?style=anime`)
+3. Saves the audio file to `backend/uploads`.
+4. Transcribes audio using `faster-whisper`.
+5. Enhances prompt with selected style (if provided).
+6. Generates an image locally using Stable Diffusion.
+7. Returns JSON with:
+   - `success`
+   - `detected_language`
+   - `language_probability`
+   - `transcription`
+   - `final_prompt`
+   - `image_url`
+
 ### 6. Performance note (CPU vs GPU)
 
 - Image generation will run on CPU if no CUDA-compatible GPU is configured.

@@ -7,7 +7,7 @@ from typing import Any
 import torch
 from diffusers import StableDiffusionPipeline
 from faster_whisper import WhisperModel
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -314,3 +314,63 @@ async def generate_image_route(payload: GenerateImageRequest) -> dict[str, Any]:
             status_code=500,
             detail=f"Image generation failed: {exc}",
         ) from exc
+
+
+@app.post("/speech-to-image")
+async def speech_to_image(
+    file: UploadFile = File(...),
+    style: str | None = Form(default=None),
+    style_query: str | None = Query(default=None, alias="style"),
+) -> dict[str, Any]:
+    """
+    End-to-end local pipeline:
+    upload audio -> transcribe -> enhance prompt -> generate image.
+    """
+    original_filename = file.filename or "unknown"
+    chosen_style = style if style is not None else style_query
+    try:
+        logger.info(
+            "Speech-to-image request received: filename=%s content_type=%s style=%s",
+            original_filename,
+            file.content_type or "unknown",
+            chosen_style or "none",
+        )
+
+        audio_path = await save_uploaded_audio(file)
+        relative_audio_path = audio_path.relative_to(BASE_DIR).as_posix()
+        logger.info("Speech-to-image transcription started: saved_path=%s", relative_audio_path)
+
+        transcribe_result = await run_in_threadpool(transcribe_audio, audio_path)
+        transcription = transcribe_result.get("transcription", "").strip()
+        if not transcription:
+            raise HTTPException(
+                status_code=400,
+                detail="No speech could be transcribed from the uploaded audio.",
+            )
+
+        final_prompt = enhance_prompt(transcription, chosen_style)
+        logger.info("Speech-to-image generation started")
+        image_url = await run_in_threadpool(generate_image, final_prompt)
+        logger.info("Speech-to-image completed: image_url=%s", image_url)
+
+        return {
+            "success": True,
+            "detected_language": transcribe_result.get("detected_language"),
+            "language_probability": transcribe_result.get("language_probability"),
+            "transcription": transcription,
+            "final_prompt": final_prompt,
+            "image_url": image_url,
+        }
+    except HTTPException:
+        raise
+    except RuntimeError as exc:
+        logger.exception("Speech-to-image runtime error for file: %s", original_filename)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Unexpected speech-to-image error for file: %s", original_filename)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Speech-to-image failed: {exc}",
+        ) from exc
+    finally:
+        await file.close()
