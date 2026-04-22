@@ -13,6 +13,19 @@ The goal is to keep everything beginner-friendly, modular, and free from paid AP
 - Frontend: HTML, CSS, JavaScript (planned)
 - Runtime: Local machine (Windows-friendly setup)
 
+## Dependency Notes (Backend)
+
+- `fastapi`: API framework for backend routes.
+- `uvicorn[standard]`: ASGI server to run FastAPI locally.
+- `python-multipart`: supports file uploads (audio input).
+- `faster-whisper`: local multilingual speech-to-text engine.
+- `torch`: core deep learning runtime used by diffusion pipelines.
+- `diffusers`: Hugging Face image generation pipelines.
+- `transformers`: model components/tokenizers used by diffusion stack.
+- `accelerate`: device/runtime helpers for smoother local inference.
+- `safetensors`: safer and faster model weight loading format.
+- `Pillow`: image I/O and post-processing utilities.
+
 ## Windows Local Setup (PowerShell)
 
 ### 1. Python version recommendation
@@ -48,6 +61,9 @@ cd backend
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+If you use an NVIDIA GPU, you may want a CUDA-specific `torch` wheel for better speed.  
+For the most compatible command for your machine, check: `https://pytorch.org/get-started/locally/`.
 
 ### 4. Run FastAPI with Uvicorn
 
