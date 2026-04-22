@@ -1,13 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AudioInput } from "@/components/AudioInput";
 import { speechToImage } from "@/lib/api";
 
+const LOADING_STAGES = ["Uploading audio...", "Transcribing...", "Generating image..."];
+
 export function LandingCard() {
-  const loadingStages = ["Uploading audio...", "Transcribing...", "Generating image..."];
   const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
   const [style, setStyle] = useState("realistic");
   const [isLoading, setIsLoading] = useState(false);
@@ -18,10 +19,20 @@ export function LandingCard() {
   const [imageUrl, setImageUrl] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const loadingTimersRef = useRef<number[]>([]);
+  const activeRequestIdRef = useRef(0);
 
-  const currentStageIndex = Math.max(loadingStages.indexOf(loadingMessage), 0);
+  const currentStageIndex = Math.max(LOADING_STAGES.indexOf(loadingMessage), 0);
+
+  useEffect(() => {
+    return () => {
+      loadingTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+      loadingTimersRef.current = [];
+      activeRequestIdRef.current += 1;
+    };
+  }, []);
 
   const handleReset = () => {
+    activeRequestIdRef.current += 1;
     loadingTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
     loadingTimersRef.current = [];
     setSelectedAudio(null);
@@ -74,6 +85,8 @@ export function LandingCard() {
     setTranscription("");
     setFinalPrompt("");
     setImageUrl("");
+    const requestId = activeRequestIdRef.current + 1;
+    activeRequestIdRef.current = requestId;
 
     window.clearTimeout(loadingTimersRef.current[0]);
     window.clearTimeout(loadingTimersRef.current[1]);
@@ -84,14 +97,23 @@ export function LandingCard() {
 
     try {
       const result = await speechToImage(selectedAudio, style);
+      if (activeRequestIdRef.current !== requestId) {
+        return;
+      }
       setTranscription(result.transcription);
       setFinalPrompt(result.final_prompt);
       setImageUrl(result.image_url);
     } catch (requestError) {
+      if (activeRequestIdRef.current !== requestId) {
+        return;
+      }
       const message =
         requestError instanceof Error ? requestError.message : "Something went wrong.";
       setError(message);
     } finally {
+      if (activeRequestIdRef.current !== requestId) {
+        return;
+      }
       loadingTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
       loadingTimersRef.current = [];
       setLoadingMessage("");
@@ -104,22 +126,22 @@ export function LandingCard() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: "easeOut" }}
-      className="rounded-[28px] border border-white/70 bg-white/65 p-7 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.35)] backdrop-blur-2xl sm:p-10 lg:p-12"
+      className="rounded-[28px] border border-white/70 bg-white/65 p-5 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.35)] backdrop-blur-2xl sm:p-8 lg:p-12"
     >
       <p className="inline-flex rounded-xl bg-slate-100 px-3 py-1 text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">
         EchoCanvas AI
       </p>
 
-      <h1 className="mt-6 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
+      <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
         Speak to Generate
       </h1>
 
-      <p className="mt-4 max-w-3xl text-base leading-relaxed text-slate-600 sm:text-lg">
+      <p className="mt-4 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-lg">
         Upload or record your voice, choose a visual style, and generate a polished
         image from your spoken idea.
       </p>
 
-      <div className="mt-10 space-y-6">
+      <div className="mt-8 space-y-5 sm:mt-10 sm:space-y-6">
         <AudioInput value={selectedAudio} onChange={setSelectedAudio} disabled={isLoading} />
 
         <section className="rounded-2xl border border-white/70 bg-gradient-to-b from-white/85 to-slate-50/70 p-5 shadow-[0_14px_36px_-26px_rgba(15,23,42,0.35)] sm:p-6">
@@ -142,7 +164,7 @@ export function LandingCard() {
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 max-sm:flex-col max-sm:items-stretch">
               <motion.button
                 type="button"
                 onClick={() => void handleGenerate()}
@@ -174,6 +196,7 @@ export function LandingCard() {
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.2 }}
               className="rounded-xl border border-slate-200/70 bg-white/80 p-3 text-sm text-slate-600 shadow-sm"
+              aria-live="polite"
             >
               <div className="mb-2 flex items-center gap-2">
                 <motion.span
@@ -184,7 +207,7 @@ export function LandingCard() {
                 <span>{loadingMessage}</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {loadingStages.map((stage, index) => (
+                {LOADING_STAGES.map((stage, index) => (
                   <div
                     key={stage}
                     className={`h-1.5 rounded-full transition ${
@@ -205,6 +228,7 @@ export function LandingCard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+              aria-live="polite"
             >
               {error}
             </motion.div>
@@ -212,7 +236,7 @@ export function LandingCard() {
         </AnimatePresence>
       </div>
 
-      <div className="mt-10 grid gap-5 lg:grid-cols-2">
+      <div className="mt-8 grid gap-4 sm:mt-10 sm:gap-5 lg:grid-cols-2">
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -283,6 +307,8 @@ export function LandingCard() {
                 exit={{ opacity: 0, scale: 0.99, y: -8 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
                 className="mt-4 max-h-[34rem] w-full rounded-2xl border border-slate-200/80 object-cover shadow-[0_18px_40px_-24px_rgba(15,23,42,0.45)]"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <motion.div

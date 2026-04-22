@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type AudioInputProps = {
   value: File | null;
@@ -17,7 +17,6 @@ export function AudioInput({
   allowRecording = true,
   disabled = false,
 }: AudioInputProps) {
-  const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -113,6 +112,12 @@ export function AudioInput({
     setIsRecording(false);
   };
 
+  useEffect(() => {
+    if (disabled && isRecording) {
+      stopRecording();
+    }
+  }, [disabled, isRecording]);
+
   return (
     <div className={className}>
       <div
@@ -151,7 +156,6 @@ export function AudioInput({
       >
         <input
           ref={fileInputRef}
-          id={inputId}
           type="file"
           accept="audio/*"
           className="hidden"
