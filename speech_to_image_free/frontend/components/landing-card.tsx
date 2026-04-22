@@ -7,6 +7,7 @@ import { AudioInput } from "@/components/AudioInput";
 import { speechToImage } from "@/lib/api";
 
 export function LandingCard() {
+  const loadingStages = ["Uploading audio...", "Transcribing...", "Generating image..."];
   const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
   const [style, setStyle] = useState("realistic");
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +16,51 @@ export function LandingCard() {
   const [transcription, setTranscription] = useState("");
   const [finalPrompt, setFinalPrompt] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
   const loadingTimersRef = useRef<number[]>([]);
+
+  const currentStageIndex = Math.max(loadingStages.indexOf(loadingMessage), 0);
+
+  const handleReset = () => {
+    loadingTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    loadingTimersRef.current = [];
+    setSelectedAudio(null);
+    setStyle("realistic");
+    setIsLoading(false);
+    setLoadingMessage("");
+    setError(null);
+    setTranscription("");
+    setFinalPrompt("");
+    setImageUrl("");
+    setIsDownloading(false);
+  };
+
+  const handleDownloadImage = async () => {
+    if (!imageUrl) {
+      return;
+    }
+    try {
+      setIsDownloading(true);
+      setError(null);
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error("Unable to download generated image.");
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `echocanvas-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      setError("Download failed. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!selectedAudio) {
@@ -26,6 +71,9 @@ export function LandingCard() {
     setIsLoading(true);
     setLoadingMessage("Uploading audio...");
     setError(null);
+    setTranscription("");
+    setFinalPrompt("");
+    setImageUrl("");
 
     window.clearTimeout(loadingTimersRef.current[0]);
     window.clearTimeout(loadingTimersRef.current[1]);
@@ -72,7 +120,7 @@ export function LandingCard() {
       </p>
 
       <div className="mt-10 space-y-6">
-        <AudioInput value={selectedAudio} onChange={setSelectedAudio} />
+        <AudioInput value={selectedAudio} onChange={setSelectedAudio} disabled={isLoading} />
 
         <section className="rounded-2xl border border-white/70 bg-gradient-to-b from-white/85 to-slate-50/70 p-5 shadow-[0_14px_36px_-26px_rgba(15,23,42,0.35)] sm:p-6">
           <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
@@ -94,16 +142,26 @@ export function LandingCard() {
               </select>
             </div>
 
-            <motion.button
-              type="button"
-              onClick={() => void handleGenerate()}
-              disabled={isLoading}
-              whileTap={{ scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 380, damping: 22 }}
-              className="h-11 rounded-xl bg-slate-900 px-6 text-sm font-semibold text-white shadow-[0_16px_30px_-16px_rgba(15,23,42,0.75)] transition duration-200 hover:scale-[1.02] hover:bg-slate-800 hover:shadow-[0_22px_34px_-18px_rgba(15,23,42,0.8)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
-            >
-              {isLoading ? loadingMessage || "Generating image..." : "Generate"}
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <motion.button
+                type="button"
+                onClick={() => void handleGenerate()}
+                disabled={isLoading}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 380, damping: 22 }}
+                className="h-11 rounded-xl bg-slate-900 px-6 text-sm font-semibold text-white shadow-[0_16px_30px_-16px_rgba(15,23,42,0.75)] transition duration-200 hover:scale-[1.02] hover:bg-slate-800 hover:shadow-[0_22px_34px_-18px_rgba(15,23,42,0.8)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
+              >
+                {isLoading ? loadingMessage || "Generating image..." : "Generate"}
+              </motion.button>
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={isLoading}
+                className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         </section>
 
@@ -115,29 +173,41 @@ export function LandingCard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.2 }}
-              className="flex items-center gap-2 text-sm text-slate-600"
+              className="rounded-xl border border-slate-200/70 bg-white/80 p-3 text-sm text-slate-600 shadow-sm"
             >
-              <motion.span
-                className="h-2.5 w-2.5 rounded-full bg-slate-500"
-                animate={{ scale: [1, 1.3, 1], opacity: [0.65, 1, 0.65] }}
-                transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <span>{loadingMessage}</span>
+              <div className="mb-2 flex items-center gap-2">
+                <motion.span
+                  className="h-2.5 w-2.5 rounded-full bg-slate-500"
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.65, 1, 0.65] }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <span>{loadingMessage}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {loadingStages.map((stage, index) => (
+                  <div
+                    key={stage}
+                    className={`h-1.5 rounded-full transition ${
+                      index <= currentStageIndex ? "bg-slate-700" : "bg-slate-200"
+                    }`}
+                  />
+                ))}
+              </div>
             </motion.div>
           ) : null}
         </AnimatePresence>
 
         <AnimatePresence>
           {error ? (
-            <motion.p
+            <motion.div
               key="error"
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              className="text-sm text-rose-600"
+              className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
             >
               {error}
-            </motion.p>
+            </motion.div>
           ) : null}
         </AnimatePresence>
       </div>
@@ -190,6 +260,18 @@ export function LandingCard() {
           className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_18px_46px_-30px_rgba(15,23,42,0.45)] backdrop-blur lg:col-span-2"
         >
           <h3 className="text-sm font-semibold tracking-wide text-slate-800 uppercase">Output</h3>
+          {imageUrl ? (
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => void handleDownloadImage()}
+                disabled={isDownloading}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDownloading ? "Preparing..." : "Download Image"}
+              </button>
+            </div>
+          ) : null}
           <AnimatePresence mode="wait">
             {imageUrl ? (
               <motion.img

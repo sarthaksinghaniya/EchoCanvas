@@ -7,6 +7,7 @@ type AudioInputProps = {
   onChange: (file: File | null) => void;
   className?: string;
   allowRecording?: boolean;
+  disabled?: boolean;
 };
 
 export function AudioInput({
@@ -14,6 +15,7 @@ export function AudioInput({
   onChange,
   className,
   allowRecording = true,
+  disabled = false,
 }: AudioInputProps) {
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -47,6 +49,9 @@ export function AudioInput({
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    if (disabled) {
+      return;
+    }
     setIsDragging(false);
     const file = event.dataTransfer.files?.[0] ?? null;
     selectFile(file);
@@ -64,6 +69,9 @@ export function AudioInput({
 
   const startRecording = async () => {
     if (!allowRecording) {
+      return;
+    }
+    if (disabled) {
       return;
     }
 
@@ -109,9 +117,16 @@ export function AudioInput({
     <div className={className}>
       <div
         role="button"
-        tabIndex={0}
-        onClick={() => fileInputRef.current?.click()}
+        tabIndex={disabled ? -1 : 0}
+        onClick={() => {
+          if (!disabled) {
+            fileInputRef.current?.click();
+          }
+        }}
         onKeyDown={(event) => {
+          if (disabled) {
+            return;
+          }
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             fileInputRef.current?.click();
@@ -119,12 +134,17 @@ export function AudioInput({
         }}
         onDragOver={(event) => {
           event.preventDefault();
+          if (disabled) {
+            return;
+          }
           setIsDragging(true);
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         className={`rounded-2xl border border-dashed bg-white p-5 transition ${
-          isDragging
+          disabled
+            ? "cursor-not-allowed border-slate-200/70 opacity-70"
+            : isDragging
             ? "border-sky-400 shadow-[0_0_0_4px_rgba(56,189,248,0.15)]"
             : "border-slate-200 hover:border-slate-300"
         }`}
@@ -135,6 +155,7 @@ export function AudioInput({
           type="file"
           accept="audio/*"
           className="hidden"
+          disabled={disabled}
           onChange={handleInputChange}
         />
 
@@ -150,7 +171,8 @@ export function AudioInput({
               event.stopPropagation();
               fileInputRef.current?.click();
             }}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            disabled={disabled}
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Choose Audio
           </button>
@@ -166,9 +188,10 @@ export function AudioInput({
                   void startRecording();
                 }
               }}
+              disabled={disabled}
               className={`rounded-xl px-3 py-2 text-xs font-semibold text-white ${
                 isRecording ? "bg-rose-500 hover:bg-rose-600" : "bg-slate-900 hover:bg-slate-800"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-60`}
             >
               {isRecording ? "Stop Recording" : "Record Audio"}
             </button>
