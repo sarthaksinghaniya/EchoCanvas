@@ -1,4 +1,12 @@
+"use client";
+
+import { useState } from "react";
+
+import { AudioInput } from "@/components/AudioInput";
+
 export function LandingCard() {
+  const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
+
   return (
     <article className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:p-8 lg:p-10">
       <p className="inline-flex rounded-xl bg-slate-100 px-3 py-1 text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">
@@ -15,23 +23,7 @@ export function LandingCard() {
       </p>
 
       <div className="mt-8 space-y-5">
-        <section className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5">
-          <h2 className="text-sm font-semibold text-slate-800">Audio Upload / Record</h2>
-          <p className="mt-1 text-xs text-slate-500">Upload a voice clip or record directly.</p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <input
-              type="file"
-              accept="audio/*"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-slate-700 hover:file:bg-slate-200"
-            />
-            <button
-              type="button"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm"
-            >
-              Record (Soon)
-            </button>
-          </div>
-        </section>
+        <AudioInput value={selectedAudio} onChange={setSelectedAudio} />
 
         <section className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
           <div>
