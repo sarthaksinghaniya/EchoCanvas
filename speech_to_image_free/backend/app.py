@@ -7,7 +7,7 @@ from typing import Any
 import torch
 from diffusers import StableDiffusionPipeline
 from faster_whisper import WhisperModel
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -18,6 +18,7 @@ APP_TITLE = "Speech-to-Image Free Backend"
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 OUTPUT_DIR = BASE_DIR / "outputs"
+STATIC_DIR = BASE_DIR / "static"
 WHISPER_MODEL_NAME = os.getenv("WHISPER_MODEL", "small")
 WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
 WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
@@ -63,6 +64,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR), check_dir=False), name="outputs")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR), check_dir=False), name="static")
 
 
 class GenerateImageRequest(BaseModel):
@@ -114,6 +116,7 @@ async def create_runtime_directories() -> None:
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    STATIC_DIR.mkdir(parents=True, exist_ok=True)
     try:
         whisper_model = load_whisper_model()
         logger.info(
@@ -222,6 +225,11 @@ def generate_image(prompt: str) -> str:
     return f"/outputs/{file_name}"
 
 
+def build_browser_image_url(request: Request, image_path: str) -> str:
+    """Convert relative image path to full browser-usable URL."""
+    return str(request.base_url).rstrip("/") + image_path
+
+
 @app.get("/")
 async def root() -> dict[str, str]:
     """Root endpoint for quick API sanity checks."""
@@ -284,7 +292,10 @@ async def transcribe(file: UploadFile = File(...)) -> dict[str, Any]:
 
 
 @app.post("/generate-image")
-async def generate_image_route(payload: GenerateImageRequest) -> dict[str, Any]:
+async def generate_image_route(
+    payload: GenerateImageRequest,
+    request: Request,
+) -> dict[str, Any]:
     """Generate image from prompt using local Stable Diffusion pipeline."""
     original_prompt = payload.prompt.strip()
     if not original_prompt:
@@ -297,13 +308,15 @@ async def generate_image_route(payload: GenerateImageRequest) -> dict[str, Any]:
     )
 
     try:
-        image_url = await run_in_threadpool(generate_image, final_prompt)
+        image_path = await run_in_threadpool(generate_image, final_prompt)
+        image_url = build_browser_image_url(request, image_path)
         logger.info("Image generation completed: image_url=%s", image_url)
         return {
             "status": "ok",
             "original_prompt": original_prompt,
             "final_prompt": final_prompt,
             "image_url": image_url,
+            "image_path": image_path,
         }
     except RuntimeError as exc:
         logger.exception("Image generation runtime error")
@@ -318,6 +331,7 @@ async def generate_image_route(payload: GenerateImageRequest) -> dict[str, Any]:
 
 @app.post("/speech-to-image")
 async def speech_to_image(
+    request: Request,
     file: UploadFile = File(...),
     style: str | None = Form(default=None),
     style_query: str | None = Query(default=None, alias="style"),
@@ -350,7 +364,8 @@ async def speech_to_image(
 
         final_prompt = enhance_prompt(transcription, chosen_style)
         logger.info("Speech-to-image generation started")
-        image_url = await run_in_threadpool(generate_image, final_prompt)
+        image_path = await run_in_threadpool(generate_image, final_prompt)
+        image_url = build_browser_image_url(request, image_path)
         logger.info("Speech-to-image completed: image_url=%s", image_url)
 
         return {
@@ -360,6 +375,7 @@ async def speech_to_image(
             "transcription": transcription,
             "final_prompt": final_prompt,
             "image_url": image_url,
+            "image_path": image_path,
         }
     except HTTPException:
         raise
