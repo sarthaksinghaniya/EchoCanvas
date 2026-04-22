@@ -1,5 +1,6 @@
 import os
 import uuid
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,9 @@ ALLOWED_AUDIO_EXTENSIONS = {
     ".aac",
     ".wma",
 }
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(APP_TITLE)
 
 
 app = FastAPI(title=APP_TITLE)
@@ -63,6 +67,12 @@ async def create_runtime_directories() -> None:
             WHISPER_MODEL_NAME,
             device=WHISPER_DEVICE,
             compute_type=WHISPER_COMPUTE_TYPE,
+        )
+        logger.info(
+            "faster-whisper loaded (model=%s, device=%s, compute_type=%s)",
+            WHISPER_MODEL_NAME,
+            WHISPER_DEVICE,
+            WHISPER_COMPUTE_TYPE,
         )
     except Exception as exc:
         raise RuntimeError(
@@ -154,19 +164,37 @@ async def health() -> dict[str, str]:
 @app.post("/transcribe")
 async def transcribe(file: UploadFile = File(...)) -> dict[str, Any]:
     """Accept an audio upload and return multilingual transcription details."""
+    original_filename = file.filename or "unknown"
     try:
+        logger.info(
+            "Transcribe request received: filename=%s content_type=%s",
+            original_filename,
+            file.content_type or "unknown",
+        )
         audio_path = await save_uploaded_audio(file)
+        relative_audio_path = audio_path.relative_to(BASE_DIR).as_posix()
+        logger.info("Transcription started: saved_path=%s", relative_audio_path)
         result = await run_in_threadpool(transcribe_audio, audio_path)
+        logger.info(
+            "Transcription completed: saved_path=%s language=%s",
+            relative_audio_path,
+            result.get("detected_language"),
+        )
         return {
             "status": "ok",
-            "file_name": audio_path.name,
-            **result,
+            "original_filename": original_filename,
+            "saved_file_path": relative_audio_path,
+            "detected_language": result.get("detected_language"),
+            "transcription": result.get("transcription", ""),
+            "language_probability": result.get("language_probability"),
         }
     except HTTPException:
         raise
     except RuntimeError as exc:
+        logger.exception("Transcription runtime error for file: %s", original_filename)
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
+        logger.exception("Unexpected transcription error for file: %s", original_filename)
         raise HTTPException(
             status_code=500,
             detail=f"Transcription failed: {exc}",

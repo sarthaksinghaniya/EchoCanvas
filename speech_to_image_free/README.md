@@ -94,6 +94,19 @@ After server start, open:
 
 If the upload is not an audio file, the API returns a readable `400` error response.
 
+### 5.2 Quick Debug Test (Hindi or English)
+
+1. Start server:
+   `uvicorn app:app --reload --host 127.0.0.1 --port 8000`
+2. Open:
+   `http://127.0.0.1:8000/docs`
+3. Test `POST /transcribe` with a short Hindi or English audio clip.
+4. Confirm response includes:
+   - `original_filename`
+   - `saved_file_path`
+   - `detected_language`
+   - `transcription`
+
 ### 6. Performance note (CPU vs GPU)
 
 - Image generation will run on CPU if no CUDA-compatible GPU is configured.
