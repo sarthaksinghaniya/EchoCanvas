@@ -1,148 +1,201 @@
-# Speech-to-Image Free
+# 🎙️ EchoCanvas AI
 
-## Overview
+**Tagline:** *Turn your voice into visuals*
 
-`Speech-to-Image Free` is a local-first project that converts spoken input into generated images using open-source models.
-The goal is to keep everything beginner-friendly, modular, and free from paid API dependencies.
+EchoCanvas AI is a local-first, multilingual speech-to-image platform that converts spoken audio into descriptive text using `faster-whisper` and generates high-quality AI images using Stable Diffusion (`diffusers`) with no paid API dependency.
 
-## Stack
+---
 
-- Backend: Python + FastAPI
-- Speech-to-Text: faster-whisper (planned)
-- Text-to-Image: Hugging Face diffusers + Stable Diffusion v1.5 (planned)
-- Frontend: HTML, CSS, JavaScript (planned)
-- Runtime: Local machine (Windows-friendly setup)
+## 🎬 Demo
 
-## Dependency Notes (Backend)
+> Demo video / GIF coming soon.
 
-- `fastapi`: API framework for backend routes.
-- `uvicorn[standard]`: ASGI server to run FastAPI locally.
-- `python-multipart`: supports file uploads (audio input).
-- `faster-whisper`: local multilingual speech-to-text engine.
-- `torch`: core deep learning runtime used by diffusion pipelines.
-- `diffusers`: Hugging Face image generation pipelines.
-- `transformers`: model components/tokenizers used by diffusion stack.
-- `accelerate`: device/runtime helpers for smoother local inference.
-- `safetensors`: safer and faster model weight loading format.
-- `Pillow`: image I/O and post-processing utilities.
+- Live Demo: `TBD`
+- Walkthrough Video: `TBD`
 
-## Windows Local Setup (PowerShell)
+---
 
-### 1. Python version recommendation
+## ✨ Features
 
-Use Python `3.10` or `3.11` for best compatibility with the planned ML stack.
+- Multilingual speech input processing
+- Fully local AI inference (no paid APIs)
+- End-to-end speech-to-image pipeline
+- Real-time UI feedback with loading stages
+- Style-based prompt enhancement (`realistic`, `anime`, `fantasy`, `digital-art`)
 
-Check your version:
+---
 
-```powershell
-python --version
+## 🧠 Architecture Flow
+
+```text
+Audio Input
+   ↓
+Transcription (faster-whisper)
+   ↓
+Prompt Enhancement (style-aware)
+   ↓
+Image Generation (Stable Diffusion v1.5)
 ```
 
-### 2. Create and activate virtual environment
+---
 
-From project root (`speech_to_image_free`):
+## 🛠️ Tech Stack
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+| Layer | Technology |
+|---|---|
+| Backend API | FastAPI |
+| Speech-to-Text | faster-whisper |
+| Text-to-Image | Hugging Face Diffusers |
+| Image Model | Stable Diffusion v1.5 |
+| Frontend | Next.js (App Router) + Tailwind CSS |
+| UI Animations | Framer Motion |
+
+---
+
+## 📁 Project Structure
+
+```text
+speech_to_image_free/
+├── backend/
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── .env.example
+│   ├── uploads/
+│   ├── outputs/
+│   ├── static/
+│   └── templates/
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   ├── styles/
+│   ├── package.json
+│   └── ...
+├── .gitignore
+└── README.md
 ```
 
-If script execution is blocked in PowerShell, run:
+---
+
+## ⚙️ Installation (Windows / PowerShell)
+
+### 1. Clone Repository
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\.venv\Scripts\Activate.ps1
+git clone <your-repo-url>
+cd speech_to_image_free
 ```
 
-### 3. Install backend requirements
+### 2. Backend Setup
 
 ```powershell
 cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-If you use an NVIDIA GPU, you may want a CUDA-specific `torch` wheel for better speed.  
-For the most compatible command for your machine, check: `https://pytorch.org/get-started/locally/`.
-
-### 4. Run FastAPI with Uvicorn
-
-From `speech_to_image_free\backend`:
+Run backend:
 
 ```powershell
 uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-### 5. API docs URL
-
-After server start, open:
-
-- Swagger UI: `http://127.0.0.1:8000/docs`
+Backend docs:
+- Swagger: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
 
-### 5.1 Test `/transcribe` from FastAPI docs
+### 3. Frontend Setup
 
-1. Open Swagger UI: `http://127.0.0.1:8000/docs`
-2. Expand `POST /transcribe`
-3. Click `Try it out`
-4. Use the `file` field to select an audio file (`.wav`, `.mp3`, `.m4a`, `.flac`, `.ogg`, `.webm`, etc.)
-5. Click `Execute`
-6. Check JSON response fields:
-   - `transcription`
-   - `detected_language`
-   - `language_probability`
+Open a new terminal:
 
-If the upload is not an audio file, the API returns a readable `400` error response.
+```powershell
+cd frontend
+npm install
+npm run dev
+```
 
-### 5.2 Quick Debug Test (Hindi or English)
+Frontend URL:
+- `http://localhost:3000`
 
-1. Start server:
-   `uvicorn app:app --reload --host 127.0.0.1 --port 8000`
-2. Open:
-   `http://127.0.0.1:8000/docs`
-3. Test `POST /transcribe` with a short Hindi or English audio clip.
-4. Confirm response includes:
-   - `original_filename`
-   - `saved_file_path`
-   - `detected_language`
-   - `transcription`
+---
 
-### 5.3 Speech-to-Image Feature Flow
+## 🚀 Usage
 
-`POST /speech-to-image` runs the full local pipeline:
+1. Open frontend at `http://localhost:3000`
+2. Upload or record an audio clip
+3. Select style (optional)
+4. Click **Generate**
+5. View outputs:
+- Transcription text
+- Final enhanced prompt
+- Generated image preview
+- Download image option
 
-1. Accepts `audio file` via multipart/form-data.
-2. Accepts optional `style` from either:
-   - form field (`style`)
-   - query parameter (`?style=anime`)
-3. Saves the audio file to `backend/uploads`.
-4. Transcribes audio using `faster-whisper`.
-5. Enhances prompt with selected style (if provided).
-6. Generates an image locally using Stable Diffusion.
-7. Returns JSON with:
-   - `success`
-   - `detected_language`
-   - `language_probability`
-   - `transcription`
-   - `final_prompt`
-   - `image_url`
+Expected output:
+- A generated image rendered in UI and served from backend `/outputs/...`
 
-### 6. Performance note (CPU vs GPU)
+---
 
-- Image generation will run on CPU if no CUDA-compatible GPU is configured.
-- CPU generation is significantly slower.
-- With NVIDIA CUDA GPU, generation is much faster.
-- On first run, model files may be downloaded locally, so startup can take longer.
+## 🔌 API Endpoints
 
-### 7. faster-whisper dependency note
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/transcribe` | Upload audio and get transcription + detected language |
+| `POST` | `/generate-image` | Generate image from text prompt (+ optional style) |
+| `POST` | `/speech-to-image` | Full pipeline: audio → transcription → prompt enhancement → image |
 
-`faster-whisper` uses bundled decoding dependencies (via PyAV), so a separate system-wide FFmpeg installation is typically not required for this project setup.
+---
 
-## Planned Features
+## 🖼️ Screenshots
 
-- Audio upload endpoint
-- Multilingual transcription with faster-whisper
-- Prompt generation pipeline
-- Local image generation with Stable Diffusion v1.5
-- Basic web UI for upload + result preview
-- Saved outputs and simple history
+> Add screenshots here after capturing UI.
+
+- `screenshots/home.png` (placeholder)
+- `screenshots/loading-state.png` (placeholder)
+- `screenshots/output-result.png` (placeholder)
+
+---
+
+## ⚠️ Limitations
+
+- CPU image generation can be slow
+- First run may download model weights (large)
+- Performance depends heavily on local hardware (RAM/GPU/VRAM)
+
+---
+
+## 🧭 Future Improvements
+
+- Richer React UI workflows and reusable modules
+- GPU inference optimization and model loading improvements
+- Optional cloud deployment profiles
+- User accounts and saved sessions
+- History timeline and image gallery
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome.
+
+1. Fork the repo
+2. Create a feature branch
+3. Commit changes
+4. Open a pull request with a clear description
+
+---
+
+## 📄 License
+
+`MIT` (or your preferred license)
+
+> Update this section once a license file is added.
+
+---
+
+## 👤 Author
+
+**Name:** `Your Name`  
+**LinkedIn/GitHub:** `Your Profile Links`
