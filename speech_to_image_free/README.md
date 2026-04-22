@@ -112,6 +112,7 @@ If the upload is not an audio file, the API returns a readable `400` error respo
 - Image generation will run on CPU if no CUDA-compatible GPU is configured.
 - CPU generation is significantly slower.
 - With NVIDIA CUDA GPU, generation is much faster.
+- On first run, model files may be downloaded locally, so startup can take longer.
 
 ### 7. faster-whisper dependency note
 
