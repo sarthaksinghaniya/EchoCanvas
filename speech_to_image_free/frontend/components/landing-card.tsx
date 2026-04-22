@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { useRef, useState } from "react";
 
 import { AudioInput } from "@/components/AudioInput";
@@ -51,7 +52,12 @@ export function LandingCard() {
   };
 
   return (
-    <article className="rounded-[28px] border border-white/70 bg-white/65 p-7 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.35)] backdrop-blur-2xl sm:p-10 lg:p-12">
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
+      className="rounded-[28px] border border-white/70 bg-white/65 p-7 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.35)] backdrop-blur-2xl sm:p-10 lg:p-12"
+    >
       <p className="inline-flex rounded-xl bg-slate-100 px-3 py-1 text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">
         EchoCanvas AI
       </p>
@@ -70,69 +76,147 @@ export function LandingCard() {
 
         <section className="rounded-2xl border border-white/70 bg-gradient-to-b from-white/85 to-slate-50/70 p-5 shadow-[0_14px_36px_-26px_rgba(15,23,42,0.35)] sm:p-6">
           <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-          <div>
-            <label htmlFor="style" className="text-sm font-semibold text-slate-800">
-              Style
-            </label>
-            <select
-              id="style"
-              value={style}
-              onChange={(event) => setStyle(event.target.value)}
-              disabled={isLoading}
-              className="mt-2 w-full rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-300"
-            >
-              <option value="realistic">Realistic</option>
-              <option value="anime">Anime</option>
-              <option value="fantasy">Fantasy</option>
-              <option value="digital-art">Digital Art</option>
-            </select>
-          </div>
+            <div>
+              <label htmlFor="style" className="text-sm font-semibold text-slate-800">
+                Style
+              </label>
+              <select
+                id="style"
+                value={style}
+                onChange={(event) => setStyle(event.target.value)}
+                disabled={isLoading}
+                className="mt-2 w-full rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-300"
+              >
+                <option value="realistic">Realistic</option>
+                <option value="anime">Anime</option>
+                <option value="fantasy">Fantasy</option>
+                <option value="digital-art">Digital Art</option>
+              </select>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => void handleGenerate()}
-            disabled={isLoading}
-            className="h-11 rounded-xl bg-slate-900 px-6 text-sm font-semibold text-white shadow-[0_16px_30px_-16px_rgba(15,23,42,0.75)] transition duration-200 hover:scale-[1.02] hover:bg-slate-800 hover:shadow-[0_22px_34px_-18px_rgba(15,23,42,0.8)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
-          >
-            {isLoading ? loadingMessage || "Generating image..." : "Generate"}
-          </button>
+            <motion.button
+              type="button"
+              onClick={() => void handleGenerate()}
+              disabled={isLoading}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 380, damping: 22 }}
+              className="h-11 rounded-xl bg-slate-900 px-6 text-sm font-semibold text-white shadow-[0_16px_30px_-16px_rgba(15,23,42,0.75)] transition duration-200 hover:scale-[1.02] hover:bg-slate-800 hover:shadow-[0_22px_34px_-18px_rgba(15,23,42,0.8)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
+            >
+              {isLoading ? loadingMessage || "Generating image..." : "Generate"}
+            </motion.button>
           </div>
         </section>
 
-        {isLoading ? <p className="text-sm text-slate-600">{loadingMessage}</p> : null}
-        {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+        <AnimatePresence mode="wait">
+          {isLoading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-2 text-sm text-slate-600"
+            >
+              <motion.span
+                className="h-2.5 w-2.5 rounded-full bg-slate-500"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.65, 1, 0.65] }}
+                transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <span>{loadingMessage}</span>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {error ? (
+            <motion.p
+              key="error"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="text-sm text-rose-600"
+            >
+              {error}
+            </motion.p>
+          ) : null}
+        </AnimatePresence>
       </div>
 
       <div className="mt-10 grid gap-5 lg:grid-cols-2">
-        <section className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_14px_36px_-28px_rgba(15,23,42,0.4)] backdrop-blur">
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.08 }}
+          className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_14px_36px_-28px_rgba(15,23,42,0.4)] backdrop-blur"
+        >
           <h3 className="text-sm font-semibold tracking-wide text-slate-800 uppercase">Transcription</h3>
-          <div className="mt-3 min-h-24 rounded-xl border border-dashed border-slate-200 bg-slate-50/90 p-3 text-sm text-slate-500">
-            {transcription || "Your speech transcription will appear here."}
-          </div>
-        </section>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={transcription ? "transcription-filled" : "transcription-empty"}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.25 }}
+              className="mt-3 min-h-24 rounded-xl border border-dashed border-slate-200 bg-slate-50/90 p-3 text-sm text-slate-500"
+            >
+              {transcription || "Your speech transcription will appear here."}
+            </motion.div>
+          </AnimatePresence>
+        </motion.section>
 
-        <section className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_14px_36px_-28px_rgba(15,23,42,0.4)] backdrop-blur">
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.12 }}
+          className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_14px_36px_-28px_rgba(15,23,42,0.4)] backdrop-blur"
+        >
           <h3 className="text-sm font-semibold tracking-wide text-slate-800 uppercase">Prompt</h3>
-          <div className="mt-3 min-h-24 rounded-xl border border-dashed border-slate-200 bg-slate-50/90 p-3 text-sm text-slate-500">
-            {finalPrompt || "Enhanced image prompt will appear here."}
-          </div>
-        </section>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={finalPrompt ? "prompt-filled" : "prompt-empty"}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.25 }}
+              className="mt-3 min-h-24 rounded-xl border border-dashed border-slate-200 bg-slate-50/90 p-3 text-sm text-slate-500"
+            >
+              {finalPrompt || "Enhanced image prompt will appear here."}
+            </motion.div>
+          </AnimatePresence>
+        </motion.section>
 
-        <section className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_18px_46px_-30px_rgba(15,23,42,0.45)] backdrop-blur lg:col-span-2">
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.16 }}
+          className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_18px_46px_-30px_rgba(15,23,42,0.45)] backdrop-blur lg:col-span-2"
+        >
           <h3 className="text-sm font-semibold tracking-wide text-slate-800 uppercase">Output</h3>
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt="Generated output"
-              className="mt-4 max-h-[34rem] w-full rounded-2xl border border-slate-200/80 object-cover shadow-[0_18px_40px_-24px_rgba(15,23,42,0.45)]"
-            />
-          ) : (
-            <div className="mt-4 flex min-h-72 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#edf2f7_100%)] text-sm text-slate-400">
-              Generated image preview will appear here.
-            </div>
-          )}
-        </section>
+          <AnimatePresence mode="wait">
+            {imageUrl ? (
+              <motion.img
+                key="image-filled"
+                src={imageUrl}
+                alt="Generated output"
+                initial={{ opacity: 0, scale: 0.985, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.99, y: -8 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="mt-4 max-h-[34rem] w-full rounded-2xl border border-slate-200/80 object-cover shadow-[0_18px_40px_-24px_rgba(15,23,42,0.45)]"
+              />
+            ) : (
+              <motion.div
+                key="image-empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="mt-4 flex min-h-72 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#edf2f7_100%)] text-sm text-slate-400"
+              >
+                Generated image preview will appear here.
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.section>
       </div>
-    </article>
+    </motion.article>
   );
 }
