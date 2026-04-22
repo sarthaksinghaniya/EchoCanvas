@@ -1,113 +1,89 @@
-# Speech-to-Image (Local, Multilingual, Free)
+# EchoCanvas AI Workspace
 
-Beginner-friendly local project for:
-- Speech-to-text (multilingual) with `faster-whisper`
-- Text-to-image with Hugging Face `diffusers`
-- Backend with `FastAPI`
-- Frontend with simple `HTML/CSS/JS`
-- No paid APIs
+This repository contains the **EchoCanvas AI** project (multilingual speech-to-image, fully local).
 
-This repo is being built incrementally in safe steps.
+## Main Project
 
-## Goal
+- App folder: [`speech_to_image_free/`](./speech_to_image_free)
+- Project documentation: [`speech_to_image_free/README.md`](./speech_to_image_free/README.md)
 
-Upload/record speech -> transcribe locally -> generate image locally.
+## Quick Run
 
-## Tech Stack
+### Backend (FastAPI)
 
-- Python (backend)
-- FastAPI + Uvicorn
-- faster-whisper (STT)
-- diffusers + Stable Diffusion v1.5 (image generation)
-- Vanilla HTML/CSS/JS (frontend)
-
-## Current Status
-
-- Workspace initialized
-- Architecture and plan finalized
-- App code not implemented yet (next steps pending)
-
-## Proposed Project Structure
-
-```text
-gen-ai/
-  backend/
-    app/
-      main.py
-      api/
-        routes/
-          health.py
-          stt.py
-          image.py
-          pipeline.py
-      core/
-        config.py
-        logging.py
-      schemas/
-        stt.py
-        image.py
-        pipeline.py
-      services/
-        whisper_service.py
-        diffusion_service.py
-      utils/
-        file_io.py
-        audio_validation.py
-    tests/
-      test_health.py
-    requirements.txt
-    .env.example
-  frontend/
-    index.html
-    styles.css
-    app.js
-    assets/
-  data/
-    input_audio/
-    outputs/
-    temp/
-  models/
-    README.md
-  scripts/
-    setup_windows.ps1
-    run_backend.ps1
-  .gitignore
-  README.md
+```bash
+cd speech_to_image_free/backend
+python -m venv .venv
+source .venv/Scripts/activate  # PowerShell: .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-## Windows Prerequisites
+### Frontend (Next.js)
 
-As of April 22, 2026:
+```bash
+cd speech_to_image_free/frontend
+npm install
+npm run dev
+```
 
-1. Windows 10/11 (64-bit)
-2. Python 3.10 or 3.11 (recommended)
-3. Git
-4. At least 25-40 GB free disk
-5. 16 GB RAM recommended (8 GB minimum for basic tests)
+## How It Works
 
-### Optional (for GPU acceleration)
+### End-to-End Flow
 
-- NVIDIA GPU + latest driver
-- PyTorch CUDA build matching your system
-- For faster-whisper GPU path: CUDA 12 + cuDNN 9 compatible setup
+```text
+User Audio -> FastAPI Upload -> faster-whisper Transcription
+-> Style Prompt Enhancement -> Stable Diffusion Image Generation
+-> Image Saved in backend/outputs -> URL Returned to Frontend
+-> UI shows Transcription + Final Prompt + Generated Image
+```
 
-CPU-only mode is fully possible (slower but easier to start).
+### Backend Processing
 
-## Planned Incremental Implementation
+1. **Startup initialization**
+- Loads `faster-whisper` model once.
+- Loads Stable Diffusion pipeline (`diffusers`) once.
+- Creates runtime folders (`uploads`, `outputs`, `static`) if missing.
 
-1. Create folders, `.gitignore`, and Python virtual environment
-2. Add minimal FastAPI app and `/health` endpoint
-3. Add audio upload endpoint with validation
-4. Integrate `faster-whisper` transcription service
-5. Integrate `diffusers` with Stable Diffusion v1.5
-6. Add end-to-end pipeline endpoint (speech -> text -> image)
-7. Build simple frontend to call backend APIs
-8. Add output storage and cleanup utilities
-9. Add basic tests and run instructions
-10. Optimize for performance (optional)
+2. **Speech-to-image API (`POST /speech-to-image`)**
+- Accepts audio file (`multipart/form-data`) and optional `style`.
+- Validates and saves audio to `backend/uploads`.
+- Transcribes speech + detects language.
+- Enhances prompt based on style (`realistic`, `anime`, `fantasy`, `digital-art`).
+- Generates image locally and saves to `backend/outputs`.
+- Returns JSON with:
+  - `transcription`
+  - `final_prompt`
+  - `image_url`
+  - language metadata
+
+3. **Static image serving**
+- Generated images are served via FastAPI static mount:
+  - `/outputs/<filename>.png`
+
+### Frontend Behavior
+
+1. User uploads or records audio.
+2. User selects style and clicks **Generate**.
+3. UI sends `FormData` request to backend.
+4. UI displays staged loading states:
+- Uploading audio...
+- Transcribing...
+- Generating image...
+5. On success, UI renders:
+- Transcription text
+- Final enhanced prompt
+- Generated image preview
+6. User can reset state or download image.
+
+### Error Handling
+
+- Invalid audio input -> clean `400` response.
+- Runtime/model issues -> `503` response.
+- Unexpected errors -> `500` response.
+- Frontend shows readable error cards without page reload.
 
 ## Notes
 
-- Keep each step testable before moving to next.
-- Prefer robust error handling over complex abstractions.
-- Keep code beginner-friendly and Windows-compatible.
+- Backend docs: `http://127.0.0.1:8000/docs`
+- Frontend: `http://localhost:3000`
