@@ -80,6 +80,20 @@ After server start, open:
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
 
+### 5.1 Test `/transcribe` from FastAPI docs
+
+1. Open Swagger UI: `http://127.0.0.1:8000/docs`
+2. Expand `POST /transcribe`
+3. Click `Try it out`
+4. Use the `file` field to select an audio file (`.wav`, `.mp3`, `.m4a`, `.flac`, `.ogg`, `.webm`, etc.)
+5. Click `Execute`
+6. Check JSON response fields:
+   - `transcription`
+   - `detected_language`
+   - `language_probability`
+
+If the upload is not an audio file, the API returns a readable `400` error response.
+
 ### 6. Performance note (CPU vs GPU)
 
 - Image generation will run on CPU if no CUDA-compatible GPU is configured.
